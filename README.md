@@ -22,7 +22,7 @@ Think of it as having a professional technical writer, code reviewer, and docume
 
 - **Smart Markdown Generation**: Get concise, context-aware explanations that focus on what matters. No more generic comments!
 - **AI-Powered Code Optimization**: Uses OpenAI's GPT models to suggest code improvements for better readability and efficiency. While the optimization is generally reliable, we recommend verifying that the optimized code maintains the original functionality, as LLMs may occasionally generate incorrect suggestions.
-- **Professional Documentation**: Add clear, detailed comments that explain not just what the code does, but why it does it. 
+- **Professional Documentation**: Add clear, detailed comments that explain not just what the code does, but why it does it
 - **Engaging Introductions**: Create compelling notebook introductions that perfectly set up your work's context and goals
 - **Insightful Summaries**: Generate comprehensive summaries with practical suggestions for future improvements
 - **Code Beautification**: Ensure your code follows consistent style guidelines automatically
@@ -48,6 +48,63 @@ While nb-explainify works with any Jupyter notebook, it performs best with noteb
 - New explanations will complement existing documentation
 - The tool focuses on filling documentation gaps
 - Code optimization and beautification work independently of existing comments
+
+## Customizing Prompts 🎨
+
+nb-explainify comes with carefully crafted default prompts that work well for most use cases. However, you can customize how it generates explanations, comments, and optimizations by providing your own prompts. You can override any specific prompt while keeping the defaults for others.
+
+Here's how to customize prompts:
+
+```python
+from nb_explainify import NotebookProcessor, LLMProcessor
+
+# Define your custom prompts
+custom_prompts = {
+    # Customize markdown explanations
+    'markdown_explanation': """
+    Write a detailed explanation focusing on:
+    - Mathematical concepts
+    - Physical interpretations
+    - Key assumptions
+    {code} will be replaced with the code to explain
+    {context} will be replaced with previous cells
+    """,
+    
+    # Customize code comments
+    'code_comments': """
+    Add comments that highlight:
+    - Performance considerations
+    - Error handling
+    - Algorithm complexity
+    {code} will be replaced with the code to comment
+    """,
+    
+    # Customize code optimization
+    'code_optimization': """
+    Optimize the code focusing on:
+    - Memory efficiency
+    - Vectorization
+    - Parallel processing
+    {code} will be replaced with the code to optimize
+    {context} will be replaced with previous cells
+    """
+}
+
+# Initialize with custom prompts - other prompts will use defaults
+processor = NotebookProcessor(llm_processor=LLMProcessor(prompts=custom_prompts))
+processor.load_notebook("your_notebook.ipynb")
+processor.explainify_notebook(output_path="enhanced_notebook.ipynb")
+```
+
+Available prompt keys (all have sensible defaults):
+- `notebook_summary`: Customize how notebook summaries are generated
+- `notebook_intro`: Customize how introductions are written
+- `code_optimization`: Customize the code optimization focus
+- `code_comments`: Customize the style of code comments
+- `markdown_explanation`: Customize how code is explained
+- `enhance_markdown`: Customize how existing markdown is enhanced
+
+Each prompt should include placeholders (e.g., `{code}`, `{context}`) that will be replaced with actual content during processing. You can view the default prompts in the `DefaultPrompts` class in `llm_processor.py` to understand how they work before customizing.
 
 ## Installation
 
