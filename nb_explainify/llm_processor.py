@@ -18,16 +18,17 @@ class DefaultPrompts:
     
     NOTEBOOK_INTRO = """Create a comprehensive introduction for this Jupyter notebook.
     Explain the purpose, methodology, and expected outcomes.
-    Make it engaging and informative for readers.
+    Make it engaging and informative for readers but also keep it concise.
     
     Notebook cells:
     {cells}
     """
     
     CODE_OPTIMIZATION = """Optimize this Python code to improve readability and efficiency.
-    Maintain the exact same functionality and output.
+    Maintain the exact same functionality and output. Do not add new functionality or intention.
+    If the current code is already optimized, return the original code.
+    
     Focus on:
-    - Better variable names
     - Code structure
     - Performance improvements
     - Following PEP 8 style guidelines
@@ -35,10 +36,7 @@ class DefaultPrompts:
     Original code:
     {code}
     
-    Previous context:
-    {context}
-    
-    Return only the optimized code without explanations.
+    Only optimize the original code. Return only the optimized code without explanations.
     """
     
     CODE_COMMENTS = """Add clear and concise comments to this Python code.
@@ -50,30 +48,39 @@ class DefaultPrompts:
     
     Keep comments professional and informative.
     Add comments only where they add value.
-    Return the code with added comments.
+    IMPORTANT: Do NOT modify the original code in any way. Only add comments.
+    Your entire response should be able to be pasted into a Python file and executed without errors.
     
     Code to comment:
     {code}
+    
+    Previous context:
+    {context}
+    
+    Return ONLY the original code with added comments. Do NOT rewrite or modify the code.
     """
     
-    MARKDOWN_EXPLANATION = """Write a clear, educational explanation of what we are doing in this section, focusing on the concepts and purpose.
+    MARKDOWN_EXPLANATION = """Write a clear, educational explanation that focuses ONLY on what is happening in THIS specific code cell.
     Write as if you are teaching a student, using natural language without showing any code.
     Don't use phrases like "this code does" or "in this code". Instead, use active voice like "we" and focus on what we're accomplishing.
-    Explain the underlying concepts and why they're important.
-
+    Explain the underlying concepts and why they're important. Keep the explanation concise.
+    
+    IMPORTANT: Only explain what is happening in THIS cell. Do not look ahead or make assumptions about future cells.
+    For example, if the cell only imports libraries, explain what those libraries are used for, but do not discuss what we will do with them later.
+    
     For example, instead of:
     "This code defines a variable x = 5 and uses it to calculate..."
     
     Write:
     "Let's define our initial position value. We'll use this as the starting point for our calculations..."
-
+    
     Code to explain (don't include this in your explanation, just understand what it does):
     {code}
     
     Previous context (don't mention this directly):
     {context}
     
-    Write your educational explanation:"""
+    Write your educational explanation focusing ONLY on this cell:"""
     
     ENHANCE_MARKDOWN = """Enhance this explanation to be more educational and concept-focused while maintaining its key points.
     Write as if you are teaching a student, using natural language without showing any code.
@@ -121,48 +128,55 @@ class LLMProcessor:
         if prompts:
             self.prompts.update(prompts)
     
-    def add_comments_to_code(self, code: str) -> str:
+    def _clean_response(self, response: str) -> str:
+        """Clean LLM response by removing markdown formatting."""
+        response = response.strip()
+        if response.startswith('```python'):
+            response = response[len('```python'):].strip()
+        if response.startswith('```'):
+            response = response[3:].strip()
+        if response.endswith('```'):
+            response = response[:-3].strip()
+        return response
+
+    def add_comments_to_code(self, code: str, context: Optional[List[str]] = None) -> str:
         """Add explanatory comments to the provided code.
         
         Args:
             code (str): The code to add comments to
+            context (Optional[List[str]]): Previous code cells for context
             
         Returns:
             str: The code with added comments
         """
-        prompt = self.prompts['code_comments'].format(code=code)
+        if not code.strip():
+            return code
+            
+        prompt = self.prompts['code_comments'].format(
+            code=code,
+            context='\n'.join(context) if context else 'No previous context'
+        )
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a Python expert adding clear and helpful comments to code."},
+                    {"role": "system", "content": "You are a Python expert adding clear and helpful comments to code. Your task is to add comments that explain the code while preserving the original code EXACTLY as is. Do not modify, rewrite, or change the code in any way - only add comments."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=1000
             )
             
-            commented_code = response.choices[0].message.content.strip()
-            
-            # Remove markdown code block formatting if present
-            if commented_code.startswith('```python'):
-                commented_code = commented_code[len('```python'):].strip()
-            if commented_code.startswith('```'):
-                commented_code = commented_code[3:].strip()
-            if commented_code.endswith('```'):
-                commented_code = commented_code[:-3].strip()
-                
-            return commented_code
+            return self._clean_response(response.choices[0].message.content)
         except Exception as e:
             raise Exception(f"Error generating comments: {str(e)}")
-    
-    def optimize_code(self, code: str, context: list = None) -> str:
+            
+    def optimize_code(self, code: str) -> str:
         """Optimize the provided code for better performance and readability.
         
         Args:
             code (str): The code to optimize
-            context (list, optional): Previous code cells for context
             
         Returns:
             str: The optimized code
@@ -172,17 +186,8 @@ class LLMProcessor:
         if not code:
             return code
             
-        context_str = ""
-        if context:
-            context_str = "Previously defined code:\n\n"
-            for i, ctx in enumerate(context, 1):
-                clean_ctx = ctx.strip()
-                if clean_ctx:
-                    context_str += f"Cell {i}:\n{clean_ctx}\n\n"
-        
         prompt = self.prompts['code_optimization'].format(
             code=code,
-            context=context_str if context else 'No previous context'
         )
         
         try:
@@ -193,18 +198,10 @@ class LLMProcessor:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=1000
             )
             
-            optimized_code = response.choices[0].message.content.strip()
-            
-            # Remove markdown code block formatting if present
-            if optimized_code.startswith('```python'):
-                optimized_code = optimized_code[len('```python'):].strip()
-            if optimized_code.startswith('```'):
-                optimized_code = optimized_code[3:].strip()
-            if optimized_code.endswith('```'):
-                optimized_code = optimized_code[:-3].strip()
+            optimized_code = self._clean_response(response.choices[0].message.content)
             
             # Remove any text before or after the actual code
             # by looking for the first def, class, or import statement
@@ -222,43 +219,43 @@ class LLMProcessor:
         except Exception as e:
             raise Exception(f"Error optimizing code: {str(e)}")
             
-    def generate_markdown_explanation(self, code: str, context: list = None) -> str:
+    def generate_markdown_explanation(self, code: str, context: Optional[List[str]] = None) -> str:
         """Generate a markdown explanation for a code cell.
         
         Args:
             code (str): The code to explain
-            context (list, optional): Previous code cells for context
+            context (Optional[List[str]]): Previous code cells for context
             
         Returns:
             str: Generated markdown explanation
         """
         prompt = self.prompts['markdown_explanation'].format(
             code=code,
-            context=context if context else 'No previous context'
+            context='\n'.join(context) if context else 'No previous context'
         )
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an expert teacher explaining complex concepts in clear, natural language. Focus on teaching the concepts and their importance, not on the code implementation."},
+                    {"role": "system", "content": "You are an expert teacher explaining Python concepts. Focus ONLY on explaining what is happening in the current code cell. Do not look ahead or make assumptions about future cells. If a cell only imports libraries, explain what those libraries are used for, but do not discuss how they will be used later."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=300
+                max_tokens=1000
             )
             
             return response.choices[0].message.content.strip()
         except Exception as e:
             raise Exception(f"Error generating markdown explanation: {str(e)}")
 
-    def enhance_markdown_explanation(self, existing_markdown: str, code: str, context: list = None) -> str:
+    def enhance_markdown_explanation(self, existing_markdown: str, code: str, context: Optional[List[str]] = None) -> str:
         """Enhance an existing markdown explanation for a code cell.
         
         Args:
             existing_markdown (str): The existing markdown explanation
             code (str): The code to explain
-            context (list, optional): Previous code cells for context
+            context (Optional[List[str]]): Previous code cells for context
             
         Returns:
             str: Enhanced markdown explanation
@@ -266,7 +263,7 @@ class LLMProcessor:
         prompt = self.prompts['enhance_markdown'].format(
             existing_markdown=existing_markdown,
             code=code,
-            context=context if context else 'No previous context'
+            context='\n'.join(context) if context else 'No previous context'
         )
         
         try:
@@ -277,7 +274,7 @@ class LLMProcessor:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=300
+                max_tokens=1000
             )
             
             return response.choices[0].message.content.strip()
@@ -308,7 +305,7 @@ class LLMProcessor:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=400
+                max_tokens=1000
             )
             
             return response.choices[0].message.content.strip()
@@ -338,7 +335,7 @@ class LLMProcessor:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=1000
             )
             
             return response.choices[0].message.content.strip()
