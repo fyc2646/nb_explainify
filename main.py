@@ -9,8 +9,8 @@ def main():
     load_dotenv()
     
     # Load the notebook
-    notebook_path = "path_to_your_notebook.ipynb"
-    output_path = "path_to_save_explanified_notebook.ipynb"
+    notebook_path = "./test.ipynb"
+    output_path = "./test_explanified.ipynb"
     
     # Initialize and process the notebook
     processor = NotebookProcessor()

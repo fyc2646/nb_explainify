@@ -40,7 +40,3 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
-
-# Test notebooks
-test.ipynb
-test_processed.ipynb
