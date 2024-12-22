@@ -21,13 +21,33 @@ Think of it as having a professional technical writer, code reviewer, and docume
 ## Features 🎯
 
 - **Smart Markdown Generation**: Get concise, context-aware explanations that focus on what matters. No more generic comments!
-- **Intelligent Code Optimization**: Automatically improve your code's readability and efficiency while maintaining its purpose
-- **Professional Documentation**: Add clear, detailed comments that explain not just what the code does, but why it does it
+- **AI-Powered Code Optimization**: Uses OpenAI's GPT models to suggest code improvements for better readability and efficiency. While the optimization is generally reliable, we recommend verifying that the optimized code maintains the original functionality, as LLMs may occasionally generate incorrect suggestions.
+- **Professional Documentation**: Add clear, detailed comments that explain not just what the code does, but why it does it. 
 - **Engaging Introductions**: Create compelling notebook introductions that perfectly set up your work's context and goals
 - **Insightful Summaries**: Generate comprehensive summaries with practical suggestions for future improvements
 - **Code Beautification**: Ensure your code follows consistent style guidelines automatically
 
 Best of all? It takes just a few lines of code to transform your notebook from basic to brilliant!
+
+## Example Notebooks 📚
+
+Want to see nb-explainify in action? Check out our example notebooks:
+- [`test.ipynb`](test.ipynb): A basic notebook before enhancement
+- [`test_explanified.ipynb`](test_explanified.ipynb): The same notebook after running nb-explainify
+
+Compare these notebooks to see how nb-explainify:
+- Adds clear, educational explanations
+- Enhances code readability
+- Creates a comprehensive introduction and summary
+- Maintains the original functionality while improving documentation
+
+## Compatibility Note 📝
+
+While nb-explainify works with any Jupyter notebook, it performs best with notebooks that have minimal or no existing comments. For notebooks with existing documentation:
+- Existing markdown cells will be enhanced rather than replaced
+- New explanations will complement existing documentation
+- The tool focuses on filling documentation gaps
+- Code optimization and beautification work independently of existing comments
 
 ## Installation
 
