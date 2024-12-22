@@ -49,6 +49,55 @@ While nb-explainify works with any Jupyter notebook, it performs best with noteb
 - The tool focuses on filling documentation gaps
 - Code optimization and beautification work independently of existing comments
 
+## Getting Started 🚀
+
+There are two ways to use nb-explainify:
+
+### 1. Streamlit Web App 🌐
+
+Want to use nb-explainify without writing any code? We've got you covered with our user-friendly Streamlit web app! Simply:
+
+1. Launch the app with `streamlit run app.py`
+2. Upload your Jupyter notebook (max 200MB)
+3. Customize your processing options:
+   - **📝 Add Introduction**: Generate a comprehensive introduction
+   - **💭 Add Comments**: Add explanatory comments to code cells
+   - **📋 Add Summary**: Create an insightful summary
+   - **📖 Add Markdown**: Generate explanatory markdown cells
+   - **⚡ Optimize Code**: Get code optimization suggestions
+   - **🎨 Format Code**: Format code using Black
+
+<img src="streamlit_app.png" width="600" alt="Streamlit App Interface">
+
+Each option (except Format Code) comes with a fine-tuning feature where you can customize the prompts to match your specific needs.
+
+The app will process your notebook and provide a download link for the enhanced version. It's that simple!
+
+### 2. Python API 🐍
+
+For more programmatic control or batch processing, you can use nb-explainify directly in your Python code:
+
+```python
+from nb_explainify import NotebookProcessor, LLMProcessor
+
+# Initialize the processor
+processor = NotebookProcessor(llm_processor=LLMProcessor())
+
+# Load and process your notebook
+processor.load_notebook("your_notebook.ipynb")
+processor.explainify_notebook(
+    output_path="enhanced_notebook.ipynb",
+    to_format=True,
+    to_comment=True,
+    to_optimize=True,
+    to_markdown=True,
+    to_intro=True,
+    to_summary=True
+)
+```
+
+See the [Customizing Prompts](#customizing-prompts-) section below for advanced configuration options.
+
 ## Customizing Prompts 🎨
 
 nb-explainify comes with carefully crafted default prompts that work well for most use cases. However, you can customize how it generates explanations, comments, and optimizations by providing your own prompts. You can override any specific prompt while keeping the defaults for others.
