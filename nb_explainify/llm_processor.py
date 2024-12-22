@@ -152,74 +152,92 @@ class LLMProcessor:
         except Exception as e:
             raise Exception(f"Error optimizing code: {str(e)}")
             
-    def generate_markdown_explanation(self, code: str, existing_markdown: Optional[str] = None, context: Optional[List[str]] = None) -> str:
-        """Generate or enhance markdown explanation for a code cell.
+    def generate_markdown_explanation(self, code: str, context: list = None) -> str:
+        """Generate a markdown explanation for a code cell.
         
         Args:
             code (str): The code to explain
-            existing_markdown (Optional[str]): Existing markdown text to enhance, if any
-            context (Optional[List[str]]): List of code strings from previous cells for context
+            context (list, optional): Previous code cells for context
             
         Returns:
-            str: The generated or enhanced markdown explanation
+            str: Generated markdown explanation
         """
-        code = code.strip()
-        if not code:
-            return existing_markdown or ""
-            
-        context_str = ""
-        if context:
-            context_str = "Previous code cells:\n\n"
-            for i, ctx in enumerate(context, 1):
-                clean_ctx = ctx.strip()
-                if clean_ctx:
-                    context_str += f"Cell {i}:\n```python\n{clean_ctx}\n```\n\n"
-            
-        if existing_markdown:
-            prompt = f"""Enhance this markdown explanation for the code below.
-            Be very concise - use at most 2 short paragraphs.
-            Focus only on what the code does and any crucial parameters.
-            Remove any implementation details or examples unless absolutely necessary.
-            Consider the context from previous cells when explaining this code.
-            
-            Current Markdown:
-            {existing_markdown}
-            
-            {context_str}Code to explain:
-            ```python
-            {code}
-            ```
-            """
-        else:
-            prompt = f"""Write a very concise markdown explanation for this code in a Jupyter notebook.
-            Use at most 2 short paragraphs.
-            Focus only on what the code does and any crucial parameters.
-            Do not include implementation details or examples.
-            Do not mention where functions are defined.
-            Consider how this code relates to any previous cells when explaining its purpose.
-            
-            {context_str}Code to explain:
-            ```python
-            {code}
-            ```
-            """
+        prompt = f"""Write a clear, educational explanation of what we are doing in this section, focusing on the concepts and purpose.
+        Write as if you are teaching a student, using natural language without showing any code.
+        Don't use phrases like "this code does" or "in this code". Instead, use active voice like "we" and focus on what we're accomplishing.
+        Explain the underlying concepts and why they're important.
+
+        For example, instead of:
+        "This code defines a variable x = 5 and uses it to calculate..."
+        
+        Write:
+        "Let's define our initial position value. We'll use this as the starting point for our calculations..."
+
+        Code to explain (don't include this in your explanation, just understand what it does):
+        {code}
+        
+        Previous context (don't mention this directly):
+        {context if context else 'No previous context'}
+        
+        Write your educational explanation:"""
         
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a technical writer creating very concise markdown documentation. Focus on what the code does, not how it does it. Consider the context from previous cells when explaining the code's purpose."},
+                    {"role": "system", "content": "You are an expert teacher explaining complex concepts in clear, natural language. Focus on teaching the concepts and their importance, not on the code implementation."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
                 max_tokens=300
             )
             
-            markdown = response.choices[0].message.content.strip()
-            return markdown
-            
+            return response.choices[0].message.content.strip()
         except Exception as e:
             raise Exception(f"Error generating markdown explanation: {str(e)}")
+
+    def enhance_markdown_explanation(self, existing_markdown: str, code: str, context: list = None) -> str:
+        """Enhance an existing markdown explanation for a code cell.
+        
+        Args:
+            existing_markdown (str): The existing markdown explanation
+            code (str): The code to explain
+            context (list, optional): Previous code cells for context
+            
+        Returns:
+            str: Enhanced markdown explanation
+        """
+        prompt = f"""Enhance this explanation to be more educational and concept-focused while maintaining its key points.
+        Write as if you are teaching a student, using natural language without showing any code.
+        Don't use phrases like "this code does" or "in this code". Instead, use active voice like "we" and focus on what we're accomplishing.
+        Only add information that is missing or could be explained better. Don't repeat information that is already well explained.
+        
+        Existing explanation:
+        {existing_markdown}
+        
+        Code being explained (don't include this in your explanation, just understand what it does):
+        {code}
+        
+        Previous context (don't mention this directly):
+        {context if context else 'No previous context'}
+        
+        Write your enhanced educational explanation:"""
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are an expert teacher enhancing explanations to be more educational and concept-focused. Focus on teaching the concepts and their importance, not on the code implementation."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=300
+            )
+            
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"Warning: Could not enhance markdown explanation: {str(e)}")
+            return existing_markdown
 
     def generate_notebook_intro(self, notebook_cells: List[Tuple[str, str]]) -> str:
         """Generate an introduction for the notebook.

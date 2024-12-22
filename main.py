@@ -9,28 +9,25 @@ def main():
     load_dotenv()
     
     # Load the notebook
-    notebook_path = "./test.ipynb"
+    notebook_path = "path_to_your_notebook.ipynb"
+    output_path = "path_to_save_explanified_notebook.ipynb"
+    
+    # Initialize and process the notebook
     processor = NotebookProcessor()
     processor.load_notebook(notebook_path)
     
     # Process the notebook with all operations
-    output_path = "./test_processed.ipynb"
     processor.explainify_notebook(
         output_path=output_path,
         to_format=True,
         to_comment=True,
-        to_optimize=True,
+        to_optimize=False,
         to_markdown=True,
         to_intro=True,
         to_summary=True
     )
     
-    print("\nProcessed notebook:")
-    for i, cell in enumerate(processor.notebook.cells):
-        print(f"\n{cell.cell_type.capitalize()} Cell {i + 1}:")
-        print(cell.source)
-    
-    print(f"\nSaved processed notebook to: {output_path}")
+    print(f"\nProcessed notebook saved to: {output_path}")
 
 if __name__ == "__main__":
     main()

@@ -117,16 +117,33 @@ class NotebookProcessor:
         new_cells = []
         context = []  # Keep track of previous code cells
         
-        for cell in self.notebook.cells:
+        i = 0
+        while i < len(self.notebook.cells):
+            cell = self.notebook.cells[i]
+            
             if cell.cell_type == 'code':
-                # Generate markdown explanation with context
-                try:
-                    markdown = llm.generate_markdown_explanation(cell.source, context=context)
-                    new_cells.append(nbformat.v4.new_markdown_cell(markdown))
-                except Exception as e:
-                    print(f"Warning: Could not generate markdown for cell: {str(e)}")
+                # Check if the previous cell was a markdown cell
+                has_preceding_markdown = (i > 0 and self.notebook.cells[i-1].cell_type == 'markdown')
+                
+                if has_preceding_markdown:
+                    # Enhance the existing markdown
+                    try:
+                        prev_markdown = self.notebook.cells[i-1].source
+                        enhanced_markdown = llm.enhance_markdown_explanation(prev_markdown, cell.source, context)
+                        new_cells[-1].source = enhanced_markdown
+                    except Exception as e:
+                        print(f"Warning: Could not enhance markdown for cell: {str(e)}")
+                else:
+                    # Generate new markdown explanation
+                    try:
+                        markdown = llm.generate_markdown_explanation(cell.source, context=context)
+                        new_cells.append(nbformat.v4.new_markdown_cell(markdown))
+                    except Exception as e:
+                        print(f"Warning: Could not generate markdown for cell: {str(e)}")
+                
                 context.append(cell.source)  # Add current cell to context for next iteration
             new_cells.append(cell)
+            i += 1
         
         self.notebook.cells = new_cells
 
