@@ -335,7 +335,7 @@ Each prompt should include placeholders (e.g., `{code}`, `{context}`) that will 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/fyc2646/nb-explainify.git
+git clone https://github.com/fyc2646/nb_explainify.git
 cd nb-explainify
 ```
 
